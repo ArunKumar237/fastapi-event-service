@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     app_name: str = "event-service"
 
-    postgres_dsn: str
+    database_url: str
     redis_url: str
 
     class Config:
