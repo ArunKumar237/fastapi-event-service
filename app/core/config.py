@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     database_url: str
     redis_url: str
+    API_KEY: str
 
     class Config:
         env_file = ".env"

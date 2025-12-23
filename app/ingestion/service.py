@@ -25,9 +25,11 @@ async def ingest_event(
 
     logger.info(
         "event_ingested",
-        event_id=event_id,
-        event_type=event_type,
-        source=source,
+        extra={
+            "event_id": event_id,
+            "event_type": event_type,
+            "source": source,
+        },
     )
 
     return event_id

@@ -15,7 +15,7 @@ MAX_RETRIES = 3
 BASE_DELAY = 0.5  # seconds
 
 
-async def dispatch_webhook(event_id: int) -> None:
+async def dispatch_webhook(event_id: str) -> None:
     async with async_session() as session:
         result = await session.execute(
             select(Event).where(Event.id == event_id)
@@ -48,7 +48,7 @@ async def _deliver_with_retry(event: Event, url: str) -> None:
             logger.info(
                 "Webhook delivered",
                 extra={
-                    "event_id": event.id,
+                    "event_id": event.event_id,
                     "target_url": url,
                     "attempt": attempts + 1,
                 },
@@ -65,7 +65,7 @@ async def _deliver_with_retry(event: Event, url: str) -> None:
             logger.warning(
                 "Webhook delivery failed, retrying",
                 extra={
-                    "event_id": event.id,
+                    "event_id": event.event_id,
                     "target_url": url,
                     "attempt": attempts,
                     "delay": delay,
@@ -77,5 +77,5 @@ async def _deliver_with_retry(event: Event, url: str) -> None:
 
     logger.error(
         "Webhook delivery permanently failed",
-        extra={"event_id": event.id, "target_url": url},
+        extra={"event_id": event.event_id, "target_url": url},
     )

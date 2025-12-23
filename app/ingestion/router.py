@@ -1,10 +1,13 @@
+import asyncio
 from fastapi import APIRouter, Depends, BackgroundTasks
 
 from app.ingestion.schemas import EventIngestRequest, EventIngestResponse
 from app.ingestion.service import ingest_event
+from app.background.tasks import process_event
 from app.db.session import async_session
 from app.cache.rate_limiter import rate_limiter
 from app.core.logging import logger
+from app.core.security import api_key_auth
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -12,7 +15,7 @@ router = APIRouter(prefix="/events", tags=["events"])
 @router.post(
     "",
     response_model=EventIngestResponse,
-    dependencies=[Depends(rate_limiter)],
+    dependencies=[Depends(api_key_auth), Depends(rate_limiter)],
 )
 async def ingest_event_endpoint(
     request: EventIngestRequest,
@@ -26,11 +29,11 @@ async def ingest_event_endpoint(
             payload=request.payload,
         )
 
-    # Phase 3 will attach real processing logic here
-    background_tasks.add_task(
-        logger.info,
+    asyncio.create_task(process_event(event_id))
+
+    logger.info(
         "background_task_scheduled",
-        event_id=event_id,
+        extra={"event_id": event_id},
     )
 
     return EventIngestResponse(

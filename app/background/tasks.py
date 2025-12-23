@@ -8,13 +8,14 @@ from app.db.session import async_session
 from app.db.models import Event
 
 
-async def process_event(event_id: int) -> None:
+async def process_event(event_id: str) -> None:
     """
     Background task for async event processing.
     - Loads event from DB
     - Simulates processing
     - Persists processing result
     """
+    logger.info("Background task started", extra={"event_id": event_id})
 
     async with async_session() as session:
         try:
