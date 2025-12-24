@@ -167,7 +167,7 @@ requirements.txt
 
 All configuration is loaded via environment variables.
 
-### `.env`
+### `.env.example`
 
 ```env
 REDIS_URL=redis://redis:6379/0
