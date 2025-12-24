@@ -1,202 +1,218 @@
+Below is a **production-grade `README.md`** written **strictly based on `all_project_files.txt` and the implemented code**, explaining **what this service is, what is implemented, how it works, project structure, setup, APIs, and design principles**.
+
+You can **copy-paste this directly as `README.md`**.
+
+---
+
 # Async Event Processing & Notification Service
 
-A production-grade, **async-first FastAPI microservice** for ingesting, processing, and dispatching events with strong guarantees around scalability, reliability, and observability.
+A **production-oriented, async-first FastAPI microservice** designed for **event ingestion, asynchronous processing, analytics, and webhook notifications**.
+
+This is **not a CRUD application**.
+It is an **event-driven backend service** focused on **scalability, reliability, and observability**.
 
 ---
 
-## 1. Project Overview
+## 🚀 What This Service Does
 
-### What This Project Does
-This service is designed to act as a **central asynchronous event ingestion and processing system**. External systems send events to this service, which then:
+This service allows external systems to:
 
-- Validates and persists incoming events
-- Processes them asynchronously (non-blocking)
-- Tracks processing status and metadata
-- Lays the foundation for webhooks, analytics, and notifications
-
-This is **not a CRUD application**. It is an event-driven microservice focused on async workflows and production-readiness.
-
-### Who It Is For
-- Backend engineers building event-driven systems
-- Teams needing a scalable event ingestion layer
-- Systems requiring async processing without blocking APIs
-
-### High-Level Workflow
-
-1. Client sends an event to `POST /events`
-2. Event is validated using Pydantic v2 schemas
-3. Event metadata is stored asynchronously in PostgreSQL
-4. A background task is triggered for processing
-5. Processing updates event status (`pending → processed` or `failed`)
-6. Logs and request IDs ensure observability
+* Ingest events asynchronously
+* Process events in the background
+* Track processing status
+* Dispatch webhooks with retry logic
+* Expose aggregated metrics
+* Apply rate limiting and API-key security
+* Run fully containerized with Docker
 
 ---
 
-## 2. Features
+## 🧱 Core Capabilities (Implemented)
 
-### Core Features
+### 1. Event Ingestion
 
-- ✅ **Async Event Ingestion**
-  - `POST /events` endpoint
-  - Pydantic v2 validation
-  - Async DB persistence
+* `POST /events`
+* Input validation using **Pydantic v2**
+* Async persistence using **SQLAlchemy 2.x**
+* Background processing triggered immediately
+* Protected by **API Key authentication**
+* Protected by **Redis-backed rate limiting**
 
-- ✅ **Async Background Processing**
-  - Non-blocking background tasks
-  - Simulated processing pipeline
-  - Status tracking (`pending`, `processed`, `failed`)
-  - Error capture in background tasks
+### 2. Background Event Processing
 
-- ✅ **Structured Logging**
-  - Central JSON-style logger
-  - Request ID propagation via middleware
-  - Consistent log fields across layers
+* Non-blocking async background tasks
+* Simulated processing logic
+* Status updates (`pending → processed / failed`)
+* Failure-safe persistence
+* Webhook dispatch triggered post-processing
 
-- ✅ **Health Check**
-  - `GET /health` endpoint for service liveness
+### 3. Webhook System
 
-### Infrastructure & Platform
+* Webhook registration by event type
+* Async webhook dispatch
+* Retry with exponential backoff
+* Delivery attempts tracked in-memory (Phase 4 scope)
 
-- ✅ Async SQLAlchemy (2.x) with PostgreSQL
-- ✅ Redis client setup (async)
-- ✅ Docker & Docker Compose for local dev
-- ✅ Strict separation of concerns (routers, services, infra)
+### 4. Metrics & Analytics
 
-### Partially Implemented / In Progress
+* `GET /metrics/events`
+* Aggregated metrics by:
 
-- 🟡 **Rate Limiting**
-  - Redis-backed dependency exists
-  - Refinement planned in later phases
+  * `event_type`
+  * `source`
+* Redis-cached for read optimization
+* Cache TTL: 60 seconds
 
-- 🟡 **Authentication Hook**
-  - Dependency wiring exists
-  - API key auth implementation planned
+### 5. Rate Limiting
 
-### Planned / Not Implemented Yet
+* Redis-backed
+* Per-client IP limiting
+* Fail-open strategy if Redis is unavailable
 
-- 🔴 Webhook registration & dispatching
-- 🔴 Retry logic with exponential backoff
-- 🔴 Metrics & analytics endpoints
-- 🔴 API key authentication enforcement
-- 🔴 Authorization policies
-- 🔴 Production-grade error response schemas
-- 🔴 Tests (unit / integration)
+### 6. Security
 
----
+* API Key–based authentication
+* Implemented as FastAPI dependencies
+* Applied to protected routes only
 
-## 3. Tech Stack
+### 7. Observability & Error Handling
 
-### Core Technologies
-- **Language:** Python 3.11
-- **Framework:** FastAPI
-- **Async ORM:** SQLAlchemy 2.x (async)
-- **Validation:** Pydantic v2
-
-### Data Stores
-- **Primary DB:** PostgreSQL
-- **Cache / Rate Limiting:** Redis (async)
-
-### Tooling
-- Docker
-- Docker Compose
-- Uvicorn
-- OpenAPI / Swagger (FastAPI auto-generated)
+* Structured JSON logging
+* Request ID propagation
+* Centralized exception handling
+* Consistent error responses
 
 ---
 
-## 4. Project Structure
+## 🧠 Architectural Principles
 
-```
+* Async-first (no blocking I/O)
+* Clear separation of concerns
+* Routers handle HTTP only
+* Services contain business logic
+* Background tasks are isolated
+* Centralized logging & configuration
+* Docker-first local development
 
+---
+
+## 📁 Project Structure
+
+```text
 app/
-├── main.py                 # FastAPI app entrypoint
+├── main.py                  # FastAPI app entrypoint
 │
 ├── core/
-│   ├── config.py           # Pydantic-based config management
-│   ├── logging.py          # Central structured logger
-│   ├── exceptions.py       # Custom exception classes
-│   └── security.py         # API key auth (planned / partial)
+│   ├── config.py            # Environment-based configuration
+│   ├── logging.py           # Central structured logger
+│   ├── security.py          # API-key authentication
+│   └── exceptions.py        # Custom application exceptions
 │
 ├── db/
-│   ├── base.py             # SQLAlchemy declarative base
-│   ├── session.py          # Async engine & session factory
-│   └── models.py           # Event model
+│   ├── base.py              # SQLAlchemy declarative base
+│   ├── session.py           # Async engine & session factory
+│   ├── models.py            # Event database model
+│   └── migrations/          # Placeholder for migrations
 │
 ├── cache/
-│   ├── redis.py            # Async Redis client
-│   └── rate_limiter.py     # Redis-backed rate limiting
+│   ├── redis.py             # Redis async client
+│   └── rate_limiter.py      # Redis-backed rate limiting
 │
 ├── ingestion/
-│   ├── router.py           # /events endpoint
-│   ├── service.py          # Event ingestion logic
-│   └── schemas.py          # Pydantic schemas
+│   ├── router.py            # /events API
+│   ├── service.py           # Event ingestion logic
+│   └── schemas.py           # Request/response schemas
 │
 ├── background/
-│   └── tasks.py            # Async background processing
+│   └── tasks.py             # Async background processing
 │
-├── metrics/                # Created but not implemented
+├── webhooks/
+│   ├── router.py            # Webhook APIs
+│   ├── service.py           # Webhook registry
+│   └── dispatcher.py        # Async webhook delivery
 │
-├── webhooks/               # Planned, not implemented
+├── metrics/
+│   ├── router.py            # /metrics API
+│   └── service.py           # Aggregation & caching logic
 │
 ├── utils/
-│   ├── ids.py              # Event / request ID generation
-│   └── time.py             # Time helpers
+│   ├── ids.py               # UUID generation
+│   └── time.py              # Time utilities (placeholder)
 │
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── .env
-
-````
+├── __init__.py
+│
+.env
+.env.example
+Dockerfile
+docker-compose.yml
+requirements.txt
+```
 
 ---
 
-## 5. Installation & Setup
+## ⚙️ Tech Stack
 
-### Prerequisites
-- Python 3.11+
-- Docker & Docker Compose
-- PostgreSQL (via Docker)
-- Redis (via Docker)
+* Python 3.11
+* FastAPI
+* Pydantic v2
+* Async SQLAlchemy 2.x
+* PostgreSQL
+* Redis
+* Docker & Docker Compose
+* Uvicorn
 
-### Environment Variables
-Defined via `.env` and loaded using `app/core/config.py`.
+---
 
-Typical variables include:
-- Database connection details
-- Redis connection URL
-- Application-level settings
+## 🔐 Configuration
 
-> Direct access to `os.environ` outside config is **forbidden**.
+All configuration is loaded via environment variables.
 
-### Local Setup
+### `.env`
+
+```env
+REDIS_URL=redis://redis:6379/0
+
+POSTGRES_USER=event_user
+POSTGRES_PASSWORD=event_pass
+POSTGRES_DB=event_db
+
+DATABASE_URL=postgresql+asyncpg://event_user:event_pass@postgres:5432/event_db
+API_KEY=api-testing-key
+```
+
+---
+
+## 🐳 Running Locally (Docker)
+
+### 1. Build & Start Services
 
 ```bash
 docker-compose up --build
-````
-
-Service will start at:
-
-```
-http://localhost:8000
 ```
 
-Health check:
+### 2. Service URLs
 
-```
-GET /health
-```
+* API: `http://localhost:8000`
+* Health Check: `http://localhost:8000/health`
+* Swagger UI: `http://localhost:8000/docs`
 
 ---
 
-## 6. Usage
+## 📌 API Endpoints
 
-### Ingest an Event
+### Health Check
+
+```http
+GET /health
+```
+
+### Event Ingestion
 
 ```http
 POST /events
-Content-Type: application/json
-
+Headers:
+  X-API-Key: api-testing-key
+Body:
 {
   "event_type": "user.signup",
   "source": "web",
@@ -206,147 +222,99 @@ Content-Type: application/json
 }
 ```
 
-### Expected Behavior
+### Metrics
 
-* Event is stored in DB
-* Background processing is triggered
-* Status transitions to `processed`
-* Logs include request_id and event_id
-
----
-
-## 7. Configuration
-
-* **Single source of truth:** `app/core/config.py`
-* Uses Pydantic BaseSettings
-* Environment-driven
-* No duplicate or inline configuration allowed
-
----
-
-## 8. Architecture & Design Decisions
-
-### Core Principles
-
-* Async-first (no blocking calls)
-* Microservice-oriented
-* Strict separation of concerns
-* Infrastructure code is centralized and non-duplicated
-
-### Key Decisions
-
-* Async SQLAlchemy only (no sync fallback)
-* Single Redis client
-* Central logger only
-* No business logic in routers
-* No FastAPI imports in services
-
-This project follows a deliberately fixed async-first architecture with strict separation of concerns (API, services, background tasks, infrastructure).
-These constraints are intentional and reflect production-style backend system design.
-
----
-
-## 9. Security Considerations
-
-### Current State
-
-* Authentication dependencies wired
-* No enforcement yet
-
-### Planned
-
-* API key–based authentication
-* Dependency-based authorization
-* No inline security checks in routers
-
----
-
-## 10. Testing
-
-### Current State
-
-* 🔴 No automated tests implemented yet
-
-### Planned
-
-* Unit tests for services
-* Integration tests for ingestion flow
-* Async test setup with pytest
-
----
-
-## 11. Performance & Optimization
-
-### Implemented
-
-* Fully async request handling
-* Non-blocking background tasks
-* Redis-backed infra components
-
-### Planned
-
-* Metrics caching
-* Read-optimized aggregation queries
-* Webhook delivery backpressure handling
-
----
-
-## 12. Limitations & Known Issues
-
-* Webhooks not implemented
-* Metrics endpoints not implemented
-* Authentication not enforced
-* No retry or DLQ mechanism yet
-* No test coverage
-* Metrics directory exists but is empty
-
----
-
-## 13. Roadmap / Future Improvements
-
-* Webhook registration & dispatcher
-* Retry with exponential backoff
-* Delivery attempt persistence
-* Metrics aggregation & caching
-* Full API key security
-* Observability improvements
-* CI/CD pipeline
-* Comprehensive test suite
-
----
-
-## 14. Contribution Guidelines
-
-* Follow async-first principles
-* Do not introduce new patterns without approval
-* Respect frozen architecture decisions
-* Absolute imports only (`app.*`)
-* Each phase must remain runnable and testable
-
----
-
-## 15. License
-
-**Not specified**
-
----
-
-## Status Summary
-
-| Area                    | Status             |
-| ----------------------- | ------------------ |
-| Event ingestion         | ✅ Implemented      |
-| Background processing   | ✅ Implemented      |
-| Logging & observability | ✅ Implemented      |
-| Dockerized setup        | ✅ Implemented      |
-| Rate limiting           | 🟡 Partial         |
-| Security                | 🟡 Partial         |
-| Webhooks                | 🔴 Planned         |
-| Metrics                 | 🔴 Planned         |
-| Tests                   | 🔴 Not implemented |
-
----
-
-This README reflects the **actual current state** of the project, including implemented functionality, partial work, and explicitly planned components.
-
+```http
+GET /metrics/events
+Headers:
+  X-API-Key: api-testing-key
 ```
+
+### Register Webhook
+
+```http
+POST /webhooks
+Body:
+{
+  "event_type": "user.signup",
+  "target_url": "https://example.com/webhook"
+}
+```
+
+### Trigger Webhook Dispatch (Manual)
+
+```http
+POST /webhooks/dispatch/{event_id}
+```
+
+---
+
+## 📊 Event Lifecycle
+
+1. Client sends event to `/events`
+2. Event is validated and stored
+3. Background task processes the event
+4. Processing status updated
+5. Webhooks dispatched asynchronously
+6. Metrics become available via `/metrics/events`
+
+---
+
+## 🛡️ Error Handling Strategy
+
+* Domain-specific exceptions (`AppException`)
+* Central exception handlers
+* Consistent JSON error responses
+* Request ID included in errors for tracing
+
+---
+
+## 🚦 Rate Limiting Strategy
+
+* Redis-backed
+* Per-IP counter
+* 100 requests per minute (current placeholder)
+* Fail-open if Redis fails (logs incident)
+
+---
+
+## 📦 Deployment Notes
+
+* Fully containerized
+* Stateless API
+* Externalized state via PostgreSQL & Redis
+* Suitable for Kubernetes or ECS deployment
+
+---
+
+## 📌 What This Project Demonstrates
+
+* Async backend design
+* Event-driven architecture
+* Production-ready FastAPI patterns
+* Background processing without Celery
+* Redis for caching & rate limiting
+* Clean separation of concerns
+* Real-world microservice structure
+
+---
+
+## 🧭 Future Improvements (Not Implemented Yet)
+
+* Persistent webhook delivery logs
+* Real HTTP webhook calls via `httpx`
+* Dead-letter queues
+* Prometheus metrics
+* Database migrations
+* Distributed task queues
+
+---
+
+## 🏁 Conclusion
+
+This project is a **realistic, production-quality async backend service**, ideal for:
+
+* Learning async FastAPI architecture
+* Demonstrating backend engineering skills
+* Interview discussions around event systems
+* Extending into enterprise-grade systems
