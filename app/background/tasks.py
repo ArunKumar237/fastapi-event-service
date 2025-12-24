@@ -1,11 +1,15 @@
 import asyncio
 from datetime import datetime
 
+from app.webhooks.dispatcher import dispatch_webhook
 from sqlalchemy import select
 
-from app.core.logging import logger
 from app.db.session import async_session
 from app.db.models import Event
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 
 async def process_event(event_id: str) -> None:
@@ -44,6 +48,9 @@ async def process_event(event_id: str) -> None:
                 "Event processed successfully",
                 extra={"event_id": event_id},
             )
+
+            # trigger webhook dispatch (non-blocking)
+            asyncio.create_task(dispatch_webhook(event_id))
 
         except Exception as exc:
             await session.rollback()

@@ -10,6 +10,8 @@ services:
     depends_on:
       - postgres
       - redis
+    volumes:
+      - ./logs:/app/logs
 
   postgres:
     image: postgres:15

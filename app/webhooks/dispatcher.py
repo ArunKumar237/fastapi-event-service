@@ -1,12 +1,14 @@
 import asyncio
 from typing import Dict
-
 from sqlalchemy import select
-
-from app.core.logging import logger
 from app.db.session import async_session
 from app.db.models import Event
 from app.webhooks.service import get_webhooks_for_event
+
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 # In-memory delivery attempts
 _DELIVERY_ATTEMPTS: Dict[str, int] = {}
@@ -48,7 +50,7 @@ async def _deliver_with_retry(event: Event, url: str) -> None:
             logger.info(
                 "Webhook delivered",
                 extra={
-                    "event_id": event.event_id,
+                    "event_id": event.id,
                     "target_url": url,
                     "attempt": attempts + 1,
                 },
@@ -57,25 +59,25 @@ async def _deliver_with_retry(event: Event, url: str) -> None:
             _DELIVERY_ATTEMPTS.pop(key, None)
             return
 
-        except Exception as exc:
+        except Exception:
             attempts += 1
             _DELIVERY_ATTEMPTS[key] = attempts
 
             delay = BASE_DELAY * (2 ** (attempts - 1))
             logger.warning(
-                "Webhook delivery failed, retrying",
+                "Webhook delivery attempt failed, will retry",
                 extra={
-                    "event_id": event.event_id,
+                    "event_id": event.id,
                     "target_url": url,
                     "attempt": attempts,
                     "delay": delay,
-                    "error": str(exc),
                 },
+                exc_info=True,
             )
 
             await asyncio.sleep(delay)
 
     logger.error(
         "Webhook delivery permanently failed",
-        extra={"event_id": event.event_id, "target_url": url},
+        extra={"event_id": event.id, "target_url": url, "attempts": attempts},
     )

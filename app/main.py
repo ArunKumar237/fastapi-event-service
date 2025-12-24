@@ -3,12 +3,20 @@ from fastapi.responses import JSONResponse
 
 from app.ingestion.router import router as ingestion_router
 from app.core.exceptions import AppException
-from app.core.logging import logger
 from app.utils.ids import generate_event_id
+from app.metrics.router import router as metrics_router
+from app.webhooks.router import router as webhooks_router
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 app = FastAPI(title="Async Event Service")
 
 app.include_router(ingestion_router)
+app.include_router(ingestion_router)
+app.include_router(metrics_router)
+app.include_router(webhooks_router)
+
 
 @app.on_event("startup")
 async def startup_event():

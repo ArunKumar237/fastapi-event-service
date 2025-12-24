@@ -6,7 +6,10 @@ from app.ingestion.service import ingest_event
 from app.background.tasks import process_event
 from app.db.session import async_session
 from app.cache.rate_limiter import rate_limiter
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 from app.core.security import api_key_auth
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -32,8 +35,8 @@ async def ingest_event_endpoint(
     asyncio.create_task(process_event(event_id))
 
     logger.info(
-        "background_task_scheduled",
-        extra={"event_id": event_id},
+        "Event ingestion accepted",
+        extra={"event_id": event_id, "event_type": request.event_type},
     )
 
     return EventIngestResponse(

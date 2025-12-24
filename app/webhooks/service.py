@@ -1,6 +1,8 @@
 from typing import Dict, List
+from app.core.logging import get_logger
 
-from app.core.logging import logger
+logger = get_logger(__name__)
+
 
 # In-memory registry (Phase 4 only)
 _WEBHOOK_REGISTRY: Dict[str, List[str]] = {}
